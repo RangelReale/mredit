@@ -1,5 +1,3 @@
-#pragma once
-
 #include "mredit/margin/MarginStacker.h"
 #include "mredit/Editor.h"
 #include "mredit/margin/AbstractMargin.h"
