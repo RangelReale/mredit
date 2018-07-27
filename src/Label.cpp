@@ -13,14 +13,31 @@ class LabelPrivate
 {
 public:
 	Label *widget;
-	QTextDocument *doc;
+	QTextDocument *_doc;
 
 	LabelPrivate(Label* widget) :
-		widget(widget), doc(nullptr)
+		widget(widget), _doc(nullptr)
 	{
 		Q_ASSERT(widget);
 
-		doc = new QTextDocument(widget);
+	}
+
+	QTextDocument *doc()
+	{
+		if (!_doc) {
+			_doc = new QTextDocument(widget);
+			_doc->setDefaultFont(widget->font());
+		}
+		return _doc;
+	}
+
+	void setDoc(QTextDocument *docu)
+	{
+		if (_doc)
+			delete _doc;
+		_doc = docu;
+		if (_doc)
+			_doc->setDefaultFont(widget->font());
 	}
 };
 
@@ -32,12 +49,6 @@ Label::Label(QWidget* parent) :
 {
 }
 
-Label::Label(const QString &text, QWidget* parent) :
-	Label(parent)
-{
-	setPlainText(text);
-}
-
 Label::~Label()
 {
 	delete d;
@@ -45,70 +56,46 @@ Label::~Label()
 
 void Label::setDocument(QTextDocument *document)
 {
-	if (!document) {
-		document = new QTextDocument(this);
-		//documentLayout = new QPlainTextDocumentLayout(document);
-		//document->setDocumentLayout(documentLayout);
-	}
-	else {
-		/*
-		documentLayout = qobject_cast<QPlainTextDocumentLayout*>(document->documentLayout());
-		if (Q_UNLIKELY(!documentLayout)) {
-			qWarning("QPlainTextEdit::setDocument: Document set does not support QPlainTextDocumentLayout");
-			return;
-		}
-		*/
-	}
-	if (d->doc) {
-		delete d->doc;
-	}
-
-	d->doc = document;
+	d->setDoc(document);
 }
 
 QTextDocument *Label::document() const
 {
-	return d->doc;
+	return d->doc();
 }
 
 void Label::setPlainText(const QString &text)
 {
-	d->doc->setPlainText(text);
+	d->doc()->setPlainText(text);
 	update();
 }
 
 void Label::clear()
 {
-	d->doc->clear();
+	d->doc()->clear();
 }
 
 QSize Label::sizeHint() const
 {
-	return d->doc->documentLayout()->documentSize().toSize();
-	/*
-	QSize ret = QFrame::sizeHint();
-	qDebug() << d->doc->documentLayout()->documentSize().toSize();
-	return ret;
-	*/
+	return d->doc()->documentLayout()->documentSize().toSize();
 }
 
 QSize Label::minimumSizeHint() const
 {
-	QSize ret = QFrame::minimumSizeHint();
-	return ret;
+	return QFrame::minimumSizeHint();
 }
 
 void Label::resizeEvent(QResizeEvent *event)
 {
 	QFrame::resizeEvent(event);
-	d->doc->setTextWidth(event->size().width());
+	d->doc()->setTextWidth(event->size().width());
 }
 
 void Label::paintEvent(QPaintEvent *event)
 {
 	QFrame::paintEvent(event);
 	QPainter painter(this);
-	d->doc->drawContents(&painter, rect());
+	d->doc()->drawContents(&painter, rect());
 }
 
 }

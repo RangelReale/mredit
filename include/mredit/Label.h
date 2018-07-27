@@ -15,7 +15,6 @@ class Label : public QFrame
     Q_OBJECT
 public:
 	Label(QWidget* parent = 0);
-	Label(const QString &text, QWidget* parent = 0);
 	virtual ~Label();
 
 	void setDocument(QTextDocument *document);
