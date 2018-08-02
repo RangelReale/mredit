@@ -26,6 +26,7 @@ public:
     Global::Ruler rulerMode;
     int rulerWidth;
 	BookmarkGroupList bookmarkgroups;
+	bool highlightCaretLine;
 
     Editor::IndentationPolicy indentationPolicy;
     int indentationWidth;
@@ -37,7 +38,8 @@ public:
             rulerMode(Global::Ruler::NoRuler ),
             rulerWidth( 80 ),
 			bookmarkgroups(),
-            indentationWidth(4)
+            indentationWidth(4),
+			highlightCaretLine(true)
     {
         Q_ASSERT( editor );
     }
@@ -673,6 +675,36 @@ QRect Editor::lineRect( int line ) const
     return blockRect( textDocument()->findBlockByNumber( line ) );
 }
 
+bool Editor::isHighlightCaretLine() const
+{
+	return d->highlightCaretLine;
+}
+
+void Editor::setHighlightCaretLine(bool value)
+{
+	d->highlightCaretLine = value;
+}
+
+void Editor::setLabelLayout(bool value)
+{
+	if (value)
+	{
+		QPalette readOnlyPalette = palette();
+		QColor mainWindowBgColor = palette().color(QPalette::Window);
+		readOnlyPalette.setColor(QPalette::Base, mainWindowBgColor);
+		setPalette(readOnlyPalette);
+
+		setHighlightCaretLine(false);
+		setFrameShape(QFrame::NoFrame);
+	}
+	else
+	{
+		// TODO: revert palette
+
+		setHighlightCaretLine(true);
+	}
+}
+
 bool Editor::event( QEvent* event )
 {
     switch ( event->type() ) {
@@ -688,27 +720,30 @@ bool Editor::event( QEvent* event )
 
 void Editor::paintEvent( QPaintEvent* event )
 {
-    QPainter painter( viewport() );
-    painter.setRenderHint( QPainter::Antialiasing, false );
+	if (d->highlightCaretLine)
+	{
+		QPainter painter(viewport());
+		painter.setRenderHint(QPainter::Antialiasing, false);
+
+		// draw ruler
+		switch ( d->rulerMode ) {
+			case Global::Ruler::NoRuler:
+				break;
+			case Global::Ruler::LineRuler:
+				painter.setPen( QPen( caretLineForeground(), painter.pen().widthF() ) );
+				painter.drawLine( d->rulerLine() );
+				break;
+			case Global::Ruler::BackgroundRuler:
+				painter.setPen( Qt::NoPen );
+				painter.setBrush( caretLineForeground() );
+				painter.drawRect( d->rulerRect() );
+				break;
+		}
     
-    // draw ruler
-    switch ( d->rulerMode ) {
-		case Global::Ruler::NoRuler:
-            break;
-		case Global::Ruler::LineRuler:
-            painter.setPen( QPen( caretLineForeground(), painter.pen().widthF() ) );
-            painter.drawLine( d->rulerLine() );
-            break;
-		case Global::Ruler::BackgroundRuler:
-            painter.setPen( Qt::NoPen );
-            painter.setBrush( caretLineForeground() );
-            painter.drawRect( d->rulerRect() );
-            break;
-    }
-    
-    // draw caret line
-    painter.fillRect( d->caretLineRect(), caretLineBackground() );
-    painter.end();
+		// draw caret line
+		painter.fillRect(d->caretLineRect(), caretLineBackground());
+		painter.end();
+	}
     
     // normal editor painting
     QPlainTextEdit::paintEvent( event );

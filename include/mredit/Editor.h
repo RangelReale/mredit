@@ -67,6 +67,11 @@ public:
     
     QRect blockRect( const QTextBlock& block ) const;
     QRect lineRect( int line ) const;
+
+	bool isHighlightCaretLine() const;
+	void setHighlightCaretLine(bool value);
+
+	void setLabelLayout(bool value);
 public slots:
     void setText( const QString& text );
     void setText( int line, const QString &text );
