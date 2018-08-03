@@ -14,6 +14,8 @@
 #include <QFontMetrics>
 #include <QApplication>
 
+#include <algorithm>
+
 namespace mredit {
 
 // CodeEditorPrivate
@@ -194,6 +196,14 @@ void Editor::setTabWidth(int size)
     setTabStopWidth((metrics.charWidth("W", 0)*size) / 2);
 }
 
+QString trimLeft(const QString &str)
+{
+	QString ret(str);
+	while (ret.size() > 0 && ret.at(0).isSpace())
+		ret.remove(0, 1);
+	return ret;
+}
+
 void Editor::insertTab()
 {
     QTextCursor cursor = textCursor();
@@ -279,6 +289,74 @@ void Editor::unindent()
         position.setX( position.x()-1 );
     }
     setCursorPosition(position);
+}
+
+void Editor::indentSelection()
+{
+	QTextCursor originalCursor = textCursor();
+	QTextCursor cursor = textCursor();
+
+	int start = cursor.selectionStart();
+	int end = cursor.selectionEnd();
+	cursor.beginEditBlock();
+	QTextBlock b = document()->findBlock(start);
+	while (b.isValid() && b.position() <= end) {
+		cursor.setPosition(b.position());
+
+		if (d->indentationPolicy == UseSpaces) {
+			QString spaces(d->indentationWidth, ' ');
+			cursor.insertText(spaces);
+		}
+		else {
+			cursor.insertText("\t");
+		}
+		b = b.next();
+	}
+	cursor.endEditBlock();
+
+	setTextCursor(originalCursor);
+}
+
+void Editor::unindentSelection()
+{
+	const int width = d->indentationWidth;
+
+	QTextCursor originalCursor = textCursor();
+	QTextCursor cursor = textCursor();
+
+	int start = cursor.selectionStart();
+	int end = cursor.selectionEnd();
+	cursor.beginEditBlock();
+	QTextBlock b = document()->findBlock(start);
+	while (b.isValid() && b.position() <= end) {
+		cursor.setPosition(b.position());
+
+		if (d->indentationPolicy == UseSpaces) {
+			// this can be done better
+			QString t = b.text();
+			int p2 = b.position() + std::min(width, t.length() - trimLeft(t).length());
+			cursor.setPosition(p2, QTextCursor::KeepAnchor);
+			cursor.removeSelectedText();
+
+			/*
+			if (cursor.positionInBlock() - width > width) {
+				cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, width);
+			}
+			else {
+				cursor.movePosition(QTextCursor::StartOfLine, QTextCursor::KeepAnchor);
+			}
+			cursor.removeSelectedText();
+			*/
+		}
+		else {
+			cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 1);
+			cursor.removeSelectedText();
+		}
+		b = b.next();
+	}
+	cursor.endEditBlock();
+
+	setTextCursor(originalCursor);
 }
 
 void Editor::setText( const QString& text )
@@ -752,14 +830,19 @@ void Editor::paintEvent( QPaintEvent* event )
 void Editor::keyPressEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_Tab) {
-        if (event->modifiers() == Qt::NoModifier) {
-            insertTab();
-            return;
-        } else if (event->modifiers() == Qt::ShiftModifier) {
-            removeTab();
-            return;
-        }
+		if (textCursor().hasSelection())
+			indentSelection();
+		else
+			insertTab();
+        return;
     }
+	else if (event->key() == Qt::Key_Backtab) {
+		if (textCursor().hasSelection())
+			unindentSelection();
+		else
+			removeTab();
+		return;
+	}
 
     if(d->stacker->margin(Global::Margin::NumberMargin))
         d->stacker->margin(Global::Margin::NumberMargin)->update();

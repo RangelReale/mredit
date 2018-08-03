@@ -25,7 +25,7 @@ MainWindow::MainWindow() : QMainWindow()
 	tmformat.setBackground(QColor(Qt::yellow));
 	_editor->bookmarkGroups().getGroup(_bm2)->setTextBlockFormat(tmformat);
 
-	_editor->setText("filter_impl<Predicate, type-parameter-0-1, type-parameter-0-2...>");
+	_editor->setText(QString("filter_impl<Predicate, type-parameter-0-1, type-parameter-0-2...>\n").repeated(5));
 
 	_editor->setBookmark(_bm, 10, true);
 	_editor->setBookmark(_bm2, 12, true);

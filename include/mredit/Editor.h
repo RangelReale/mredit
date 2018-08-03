@@ -100,6 +100,9 @@ public slots:
     void indent();
     void unindent();
 
+	void indentSelection();
+	void unindentSelection();
+
     void setTabWidth(int size);
 
     void setIndentationPolicy(Editor::IndentationPolicy policy);
